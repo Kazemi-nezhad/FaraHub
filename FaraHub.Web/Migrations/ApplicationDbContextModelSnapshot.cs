@@ -264,6 +264,9 @@ namespace FaraHub.Web.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("EndTime")
                         .HasColumnType("datetime2");
 
@@ -457,7 +460,7 @@ namespace FaraHub.Web.Migrations
                     b.HasOne("FaraHub.Web.Models.AppUser", "AssignedTo")
                         .WithMany("AssignedTickets")
                         .HasForeignKey("AssignedToId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("FaraHub.Web.Models.AppUser", "CreatedBy")
                         .WithMany("CreatedTickets")
@@ -468,7 +471,7 @@ namespace FaraHub.Web.Migrations
                     b.HasOne("FaraHub.Web.Models.AppUser", "Customer")
                         .WithMany("CustomerTickets")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("AssignedTo");
 
@@ -482,7 +485,7 @@ namespace FaraHub.Web.Migrations
                     b.HasOne("FaraHub.Web.Models.Ticket", "Ticket")
                         .WithMany("TimeLogs")
                         .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("FaraHub.Web.Models.AppUser", "User")

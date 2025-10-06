@@ -33,21 +33,21 @@ namespace FaraHub.Web.Data
                 entity.HasQueryFilter(e => e.DeletedAt == null);
                 // ارتباط چند به یک با AppUser (CreatedById) - الزامی
                 entity.HasOne(t => t.CreatedBy)
-                      .WithMany(u => u.CreatedTickets) // نیاز به تعریف این Navigation Property در AppUser داریم
+                      .WithMany(u => u.CreatedTickets)
                       .HasForeignKey(t => t.CreatedById)
-                      .OnDelete(DeleteBehavior.NoAction); // اصلی‌ترین تغییر: اطمینان از NoAction برای کلید اصلی
+                      .OnDelete(DeleteBehavior.NoAction); // NoAction برای همه
 
                 // ارتباط چند به یک با AppUser (AssignedToId) - اختیاری
                 entity.HasOne(t => t.AssignedTo)
-                      .WithMany(u => u.AssignedTickets) // نیاز به تعریف این Navigation Property در AppUser داریم
+                      .WithMany(u => u.AssignedTickets)
                       .HasForeignKey(t => t.AssignedToId)
-                      .OnDelete(DeleteBehavior.SetNull); // درست است
+                      .OnDelete(DeleteBehavior.NoAction); // تغییر از SetNull به NoAction
 
                 // ارتباط چند به یک با AppUser (CustomerId) - اختیاری
                 entity.HasOne(t => t.Customer)
-                      .WithMany(u => u.CustomerTickets) // نیاز به تعریف این Navigation Property در AppUser داریم
+                      .WithMany(u => u.CustomerTickets)
                       .HasForeignKey(t => t.CustomerId)
-                      .OnDelete(DeleteBehavior.SetNull); // اصلی‌ترین تغییر: اطمینان از SetNull و اینکه CustomerId اختیاری است
+                      .OnDelete(DeleteBehavior.NoAction); // تغییر از SetNull به NoAction
             });
 
             builder.Entity<Message>(entity =>
@@ -57,13 +57,13 @@ namespace FaraHub.Web.Data
                 entity.HasOne(m => m.Ticket)
                       .WithMany(t => t.Messages)
                       .HasForeignKey(m => m.TicketId)
-                      .OnDelete(DeleteBehavior.Cascade); // اگر تیکت حذف شود، پیام‌ها هم حذف شوند (Soft Delete)
+                      .OnDelete(DeleteBehavior.Cascade); // این Ok است، چون Ticket فیلتر دارد
 
                 // ارتباط چند به یک با AppUser
                 entity.HasOne(m => m.SentBy)
-                      .WithMany(u => u.SentMessages) // نیاز به تعریف این Navigation Property در AppUser داریم
+                      .WithMany(u => u.SentMessages)
                       .HasForeignKey(m => m.SentById)
-                      .OnDelete(DeleteBehavior.NoAction); // یا Restrict - منطق مشابه CreatedBy
+                      .OnDelete(DeleteBehavior.NoAction); // NoAction
             });
 
             builder.Entity<Attachment>(entity =>
@@ -73,25 +73,25 @@ namespace FaraHub.Web.Data
                 entity.HasOne(a => a.Message)
                       .WithMany(m => m.Attachments)
                       .HasForeignKey(a => a.MessageId)
-                      .OnDelete(DeleteBehavior.Cascade); // اگر پیام حذف شود، فایل پیوست هم حذف شود (Soft Delete)
+                      .OnDelete(DeleteBehavior.Cascade); // Ok
             });
 
             builder.Entity<TimeLog>(entity =>
             {
-                // Soft Delete برای TimeLog نیز اگر لازم باشد
-                // entity.HasQueryFilter(e => e.DeletedAt == null);
+                // Soft Delete برای TimeLog اضافه شد
+                entity.HasQueryFilter(e => e.DeletedAt == null);
 
-                // ارتباط چند به یک با Ticket
+                // ارتباط چند به یک با Ticket - الزامی
                 entity.HasOne(tl => tl.Ticket)
                       .WithMany(t => t.TimeLogs)
                       .HasForeignKey(tl => tl.TicketId)
-                      .OnDelete(DeleteBehavior.Cascade); // اگر تیکت حذف شود، زمان‌ها هم حذف شوند
+                      .OnDelete(DeleteBehavior.NoAction); // تغییر از Cascade به NoAction برای جلوگیری از تناقض با فیلتر Ticket
 
-                // ارتباط چند به یک با AppUser
+                // ارتباط چند به یک با AppUser - الزامی
                 entity.HasOne(tl => tl.User)
-                      .WithMany(u => u.TimeLogs) // نیاز به تعریف این Navigation Property در AppUser داریم
+                      .WithMany(u => u.TimeLogs)
                       .HasForeignKey(tl => tl.UserId)
-                      .OnDelete(DeleteBehavior.NoAction); // یا Restrict - منطق مشابه CreatedBy
+                      .OnDelete(DeleteBehavior.NoAction); // NoAction
             });
         }
     }
