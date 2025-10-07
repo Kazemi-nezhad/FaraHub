@@ -7,6 +7,7 @@ using FaraHub.Web.Data;
 using FaraHub.Web.Models;
 using FaraHub.Web.Services; // برای TokenService اگر لازم باشد
 using System.ComponentModel.DataAnnotations;
+using FaraHub.Web.DTOs;
 
 namespace FaraHub.Web.Controllers
 {
@@ -395,93 +396,6 @@ namespace FaraHub.Web.Controllers
             ticket.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return NoContent();
-        }
-
-        // DTOs
-        public class TicketDto
-        {
-            public int Id { get; set; }
-            public string Title { get; set; } = string.Empty;
-            public string Description { get; set; } = string.Empty;
-            public TicketStatus Status { get; set; }
-            public TicketPriority Priority { get; set; }
-            public DateTime CreatedAt { get; set; }
-            public DateTime UpdatedAt { get; set; }
-            public DateTime? LastActivityAt { get; set; }
-            public UserSummaryDto CreatedBy { get; set; } = null!;
-            public UserSummaryDto? AssignedTo { get; set; }
-            public UserSummaryDto? Customer { get; set; }
-        }
-
-        public class TicketDetailDto
-        {
-            public int Id { get; set; }
-            public string Title { get; set; } = string.Empty;
-            public string Description { get; set; } = string.Empty;
-            public TicketStatus Status { get; set; }
-            public TicketPriority Priority { get; set; }
-            public DateTime CreatedAt { get; set; }
-            public DateTime UpdatedAt { get; set; }
-            public DateTime? LastActivityAt { get; set; }
-            public UserSummaryDto CreatedBy { get; set; } = null!;
-            public UserSummaryDto? AssignedTo { get; set; }
-            public UserSummaryDto? Customer { get; set; }
-            public List<MessageDto>? Messages { get; set; }
-            public TimeSpan TotalTimeSpent { get; set; }
-        }
-
-        public class UserSummaryDto
-        {
-            public string Id { get; set; } = string.Empty;
-            public string? UserName { get; set; }
-            public string? FullName { get; set; }
-        }
-
-        public class MessageDto
-        {
-            public int Id { get; set; }
-            public string Content { get; set; } = string.Empty;
-            public DateTime SentAt { get; set; }
-            public UserSummaryDto SentBy { get; set; } = null!;
-            public List<AttachmentDto>? Attachments { get; set; }
-        }
-
-        public class AttachmentDto
-        {
-            public int Id { get; set; }
-            public string FileName { get; set; } = string.Empty;
-            public long Size { get; set; }
-            public string ContentType { get; set; } = string.Empty;
-            public string DownloadUrl { get; set; } = string.Empty; // لینک دانلود ایمن
-        }
-
-        public class CreateTicketDto
-        {
-            [Required]
-            [MaxLength(200)]
-            public string Title { get; set; } = string.Empty;
-
-            [Required]
-            public string Description { get; set; } = string.Empty;
-
-            public TicketPriority Priority { get; set; } = TicketPriority.Medium;
-
-            // فقط برای اعضا شرکت - اختیاری
-            public string? CustomerId { get; set; }
-
-            // فقط برای اعضا شرکت - اختیاری - باید در API اصلی ایجاد تیکت مدیریت شود، نه اینجا
-            //public string? AssignedToId { get; set; } // حذف شد یا شرط‌بندی شود
-        }
-
-        public class UpdateTicketStatusDto
-        {
-            [Required]
-            public TicketStatus NewStatus { get; set; }
-        }
-
-        public class AssignTicketDto
-        {
-            public string? AssignedToId { get; set; }
         }
     }
 }

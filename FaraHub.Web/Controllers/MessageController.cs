@@ -1,5 +1,6 @@
 ﻿// Controllers/MessageController.cs
 using FaraHub.Web.Data;
+using FaraHub.Web.DTOs;
 using FaraHub.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -282,15 +283,6 @@ namespace FaraHub.Web.Controllers
             }).ToList();
 
             return Ok(messageDtos);
-        }
-
-        // DTO
-        public class SendMessageDto
-        {
-            [Required]
-            public string Content { get; set; } = string.Empty;
-
-            public List<IFormFile>? Files { get; set; } // فایل‌های پیوست
         }
     }
 }

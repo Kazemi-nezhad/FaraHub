@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using FaraHub.Web.Data;
 using FaraHub.Web.Models;
 using System.ComponentModel.DataAnnotations;
+using FaraHub.Web.DTOs;
 
 namespace FaraHub.Web.Controllers
 {
@@ -158,18 +159,6 @@ namespace FaraHub.Web.Controllers
             }).ToList();
 
             return Ok(timeLogDtos);
-        }
-
-        // DTO
-        public class TimeLogDto
-        {
-            public int Id { get; set; }
-            public string UserId { get; set; } = string.Empty;
-            public string UserName { get; set; } = string.Empty; // برای نمایش
-            public int TicketId { get; set; }
-            public DateTime StartTime { get; set; }
-            public DateTime? EndTime { get; set; }
-            public TimeSpan? TotalDuration { get; set; }
         }
     }
 }
