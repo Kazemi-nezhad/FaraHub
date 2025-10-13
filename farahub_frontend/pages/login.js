@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { setCurrentUser } from "../services/authService";
+import { useDispatch } from "react-redux";
+import { loginStart, loginSuccess, loginFailure } from "../store/authSlice";
 import apiService from "../services/apiService";
 
 export default function Login() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,6 +14,8 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    dispatch(loginStart());
 
     try {
       const response = await apiService.post("/account/login", {
@@ -21,12 +25,15 @@ export default function Login() {
 
       const { user } = response.data;
 
-      setCurrentUser(user);
+      dispatch(loginSuccess(user));
 
       router.push("/dashboard");
     } catch (err) {
       console.error("Login error:", err);
-      setError(err.response?.data?.message || "خطایی رخ داده است.");
+      const errorMessage = err.response?.data?.message || "خطایی رخ داده است.";
+
+      dispatch(loginFailure(errorMessage));
+      setError(errorMessage);
     }
   };
 

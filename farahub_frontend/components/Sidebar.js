@@ -1,11 +1,10 @@
-// components/Sidebar.js
-import { getCurrentUser } from "../services/authService";
+import { useSelector } from "react-redux";
+import { selectUser } from "../store/authSlice";
 import Link from "next/link";
 
 const Sidebar = () => {
-  const user = getCurrentUser(); // اطلاعات کاربر از localStorage
+  const user = useSelector(selectUser);
 
-  // تابعی برای تعیین منوها بسته به نقش
   const getMenus = (roles) => {
     const menus = [
       { name: "تیکت‌ها", path: "/tickets" },
@@ -15,14 +14,9 @@ const Sidebar = () => {
     if (roles.includes("Admin") || roles.includes("TechnicalManager")) {
       menus.push(
         { name: "مدیریت کاربران", path: "/users" },
-        { name: "گزارشات", path: "/reports" } // یا هر صفحه دیگری
+        { name: "گزارشات", path: "/reports" }
       );
     }
-
-    // نقش‌های تخصصی مانند TechnicalManager, SalesManager می‌توانند منوی خاصی داشته باشند
-    // if (roles.includes('TechnicalManager')) {
-    //   menus.push({ name: 'مدیریت فنی', path: '/technical' });
-    // }
 
     return menus;
   };
@@ -32,6 +26,12 @@ const Sidebar = () => {
   return (
     <div className="w-64 bg-gray-800 text-white h-screen p-4">
       <h2 className="text-xl font-bold mb-4">FaraHub</h2>
+      {/* نمایش نام کاربر */}
+      {user && (
+        <div className="mb-4 p-2 bg-gray-700 rounded">
+          <p className="text-sm">خوش آمدی، {user.fullName || user.userName}</p>
+        </div>
+      )}
       <nav>
         <ul className="space-y-2">
           {menus.map((menu, index) => (
