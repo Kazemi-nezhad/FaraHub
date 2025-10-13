@@ -27,19 +27,17 @@ namespace FaraHub.Web.Services
             var issuer = jwtSettings["Issuer"];
             var audience = jwtSettings["Audience"];
 
-            var userRoles = _userManager.GetRolesAsync(user).Result; // توجه: از await/async استفاده کنید در محیط‌هایی که ممکن است مشکل ایجاد کند، اما در این حالت ساده ممکن است قابل قبول باشد. برای اطمینان، متد GenerateToken را async کنید.
+            var userRoles = _userManager.GetRolesAsync(user).Result;
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName!),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // JWT ID
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64), // Issued At
-                // اضافه کردن نقش‌های کاربر به توکن
-                //new Claim(ClaimTypes.Role, string.Join(",", userRoles)) // روش ساده برای یک نقش
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                //new Claim(ClaimTypes.Role, string.Join(",", userRoles))
             };
 
-            // اضافه کردن نقش‌های کاربر به توکن (روش صحیح برای چندین نقش)
             foreach (var role in userRoles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));

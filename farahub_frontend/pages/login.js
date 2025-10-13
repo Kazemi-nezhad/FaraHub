@@ -1,7 +1,6 @@
-// pages/login.js
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { setAuthToken, setCurrentUser } from "../services/authService";
+import { setCurrentUser } from "../services/authService";
 import apiService from "../services/apiService";
 
 export default function Login() {
@@ -20,13 +19,10 @@ export default function Login() {
         password,
       });
 
-      const { token, user } = response.data;
+      const { user } = response.data;
 
-      // ذخیره توکن و اطلاعات کاربر در localStorage
-      setAuthToken(token);
       setCurrentUser(user);
 
-      // هدایت به داشبورد
       router.push("/dashboard");
     } catch (err) {
       console.error("Login error:", err);

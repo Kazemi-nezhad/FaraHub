@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
+﻿using FaraHub.Web.Data;
 using FaraHub.Web.Models;
-using FaraHub.Web.Services; // برای ITokenService
+using FaraHub.Web.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace FaraHub.Web.Controllers
 {
@@ -11,14 +14,14 @@ namespace FaraHub.Web.Controllers
     public class AccountController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
-        // private readonly SignInManager<AppUser> _signInManager; // دیگر نیازی نیست
-        private readonly ITokenService _tokenService; // اضافه شد
+        private readonly ITokenService _tokenService;
+        private readonly ApplicationDbContext _context;
 
-        public AccountController(UserManager<AppUser> userManager, /*SignInManager<AppUser> signInManager,*/ ITokenService tokenService) // تغییر در سازنده
+        public AccountController(UserManager<AppUser> userManager, ITokenService tokenService, ApplicationDbContext context)
         {
             _userManager = userManager;
-            // _signInManager = signInManager; // دیگر نیازی نیست
-            _tokenService = tokenService; // اضافه شد
+            _tokenService = tokenService;
+            _context = context;
         }
 
         // POST: api/account/login
@@ -38,10 +41,20 @@ namespace FaraHub.Web.Controllers
                     return Unauthorized("حساب کاربری غیرفعال یا حذف شده است.");
                 }
 
-                // تولید JWT Token
                 var token = _tokenService.GenerateToken(user);
 
-                // برگرداندن توکن و اطلاعات کاربر
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    // Path = "/",
+                    // Domain = ".yourdomain.com",
+                    MaxAge = TimeSpan.FromMinutes(60)
+                };
+
+                Response.Cookies.Append("auth_token", token, cookieOptions);
+
                 var userInfo = new
                 {
                     Id = user.Id,
@@ -51,10 +64,21 @@ namespace FaraHub.Web.Controllers
                     IsCompanyMember = user.IsCompanyMember
                 };
 
-                return Ok(new { message = "ورود موفقیت‌آمیز", token = token, user = userInfo });
+                // نباید توکن در بدنه ارسال شود
+                return Ok(new { message = "ورود موفقیت‌آمیز", user = userInfo });
             }
 
             return Unauthorized("نام کاربری یا رمز عبور اشتباه است.");
+        }
+
+        // POST: api/account/logout
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            Response.Cookies.Delete("auth_token");
+
+            return Ok(new { message = "خروج موفقیت‌آمیز" });
         }
 
         // POST: api/account/register
@@ -66,32 +90,52 @@ namespace FaraHub.Web.Controllers
                 return BadRequest(ModelState);
             }
 
-            // ایجاد کاربر جدید (مشتری)
             var user = new AppUser
             {
                 UserName = model.Username,
                 Email = model.Email,
                 FullName = model.FullName,
-                IsCompanyMember = false, // مشتری جدید
-                IsActive = false, // <--- تغییر: حساب جدید مشتری غیرفعال است
+                IsCompanyMember = false,
+                IsActive = false,
                 CreatedAt = DateTime.UtcNow
-                // DeletedAt = null; // پیش‌فرض
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
-                // اختیاری: می‌توانید نقش پیش‌فرض "مشتری" را به کاربر جدید اختصاص دهید
                 await _userManager.AddToRoleAsync(user, "Customer");
 
-                // فقط پیام موفقیت را برمی‌گردانیم (و احتمالاً درخواست تأیید ایمیل)
                 return Ok(new { message = "ثبت نام با موفقیت انجام شد. حساب شما در انتظار تأیید توسط مدیر است." });
             }
 
-            // اگر موفق نبود، خطاها را برگردان
             var errors = result.Errors.Select(e => e.Description);
             return BadRequest(new { errors });
+        }
+
+        // GET: api/account/status
+        [HttpGet("status")]
+        [Authorize]
+        public async Task<ActionResult<object>> GetAuthStatus()
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+            if (currentUser == null)
+            {
+                return NotFound();
+            }
+
+            var userInfo = new
+            {
+                Id = currentUser.Id,
+                UserName = currentUser.UserName,
+                Email = currentUser.Email,
+                FullName = currentUser.FullName,
+                IsCompanyMember = currentUser.IsCompanyMember,
+                Roles = (await _userManager.GetRolesAsync(currentUser)).ToList()
+            };
+
+            return Ok(new { user = userInfo });
         }
     }
 }
