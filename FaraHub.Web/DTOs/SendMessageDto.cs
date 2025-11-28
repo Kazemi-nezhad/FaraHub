@@ -6,7 +6,6 @@ namespace FaraHub.Web.DTOs
     {
         [Required]
         public string Content { get; set; } = string.Empty;
-
-        public List<IFormFile>? Files { get; set; } // فایل‌های پیوست
+        public List<IFormFile>? Files { get; set; }
     }
 }

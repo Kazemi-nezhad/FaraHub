@@ -1,13 +1,15 @@
 ﻿// Controllers/MessageController.cs
 using FaraHub.Web.Data;
-using FaraHub.Web.DTOs;
+using FaraHub.Web.DTOs; // اطمینان حاصل کنید که این namespace درست است
 using FaraHub.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging; // اضافه شد
 using System.ComponentModel.DataAnnotations;
-using static FaraHub.Web.Controllers.TicketController;
+// توجه: استفاده از static از TicketController ممکن است منجر به مشکل شود. بهتر است DTOها را در یک namespace مشترک قرار دهید.
+// using static FaraHub.Web.Controllers.TicketController; // این خط را حذف یا بررسی کنید
 
 namespace FaraHub.Web.Controllers
 {
@@ -18,12 +20,14 @@ namespace FaraHub.Web.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<AppUser> _userManager;
         private readonly IWebHostEnvironment _environment; // برای دسترسی به wwwroot
+        private readonly ILogger<MessageController> _logger; // <--- اضافه شد
 
-        public MessageController(ApplicationDbContext context, UserManager<AppUser> userManager, IWebHostEnvironment environment)
+        public MessageController(ApplicationDbContext context, UserManager<AppUser> userManager, IWebHostEnvironment environment, ILogger<MessageController> logger) // <--- ILogger به سازنده اضافه شد
         {
             _context = context;
             _userManager = userManager;
             _environment = environment;
+            _logger = logger; // <--- مقداردهی فیلد _logger
         }
 
         // GET: api/message/{id}
@@ -99,11 +103,18 @@ namespace FaraHub.Web.Controllers
         [Authorize]
         public async Task<ActionResult<MessageDto>> SendMessage(int ticketId, [FromForm] SendMessageDto model) // FromForm برای فایل‌ها
         {
+            _logger.LogInformation($"SendMessage called. TicketId: {ticketId}, Model Content Length: {model?.Content?.Length}, Model Files Count: {model?.Files?.Count() ?? -1}");
+
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                _logger.LogError("ModelState is invalid.");
+                foreach (var error in ModelState)
+                {
+                    _logger.LogError($"ModelState Error - Key: {error.Key}, Errors: [{string.Join(", ", error.Value.Errors.Select(e => e.ErrorMessage))}]");
+                }
+                return BadRequest(ModelState); // این همان جایی است که 400 بر می‌گرداند
             }
-
+            
             var currentUserId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(currentUserId))
                 return Unauthorized();
@@ -128,6 +139,13 @@ namespace FaraHub.Web.Controllers
             if (ticket == null)
             {
                 return NotFound("تیکت مورد نظر یافت نشد یا دسترسی ندارید.");
+            }
+
+            // چک کردن WebRootPath قبل از استفاده
+            if (string.IsNullOrEmpty(_environment.WebRootPath))
+            {
+                _logger.LogError("WebRootPath is null or empty. Cannot upload files.");
+                return BadRequest("سرویس فایل‌ها موقتاً در دسترس نیست.");
             }
 
             // اعتبارسنجی فایل‌ها
@@ -169,7 +187,11 @@ namespace FaraHub.Web.Controllers
             // آپلود فایل‌ها و ذخیره در دیتابیس
             if (model.Files != null)
             {
-                var ticketUploadPath = Path.Combine(_environment.WebRootPath, "uploads", "tickets", ticketId.ToString(), "messages", message.Id.ToString());
+                // تعریف یک مسیر خارج از wwwroot برای ذخیره فایل‌ها
+                // مثلاً یک پوشه 'uploads' در کنار پوشه wwwroot
+                // اطمینان از اینکه این مسیر قابل نوشتن است
+                var uploadBasePath = Path.Combine(Directory.GetCurrentDirectory(), "uploads"); // مسیر پوشه uploads در ریشه پروژه
+                var ticketUploadPath = Path.Combine(uploadBasePath, "tickets", ticketId.ToString(), "messages", message.Id.ToString());
                 Directory.CreateDirectory(ticketUploadPath); // ایجاد پوشه اگر وجود نداشته باشد
 
                 foreach (var file in model.Files)
@@ -178,21 +200,26 @@ namespace FaraHub.Web.Controllers
                     {
                         var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
                         var filePath = Path.Combine(ticketUploadPath, fileName);
-
                         using (var fileStream = new FileStream(filePath, FileMode.Create))
                         {
                             await file.CopyToAsync(fileStream);
                         }
+                        // توجه: FilePath را برای ذخیره در دیتابیس تغییر دهید
+                        // این مسیر باید طوری باشد که بعداً بتوانید فایل را با یک endpoint ایمن دانلود کنید
+                        // مثلاً اگر یک endpoint دانلود داشته باشید مثل /api/attachment/download/{id}
+                        // شما نباید مسیر واقعی فایل را در دیتابیس ذخیره کنید، بلکه یک شناسه منحصر به فرد یا مسیر نسبی امن ذخیره کنید
+                        // اما برای سادگی در اینجا، مسیر نسبی از پوشه 'uploads' را ذخیره می‌کنیم
+                        // و فرض می‌کنیم endpoint دانلود از این اطلاعات استفاده می‌کند
+                        var relativeFilePath = Path.Combine("uploads", "tickets", ticketId.ToString(), "messages", message.Id.ToString(), fileName);
 
                         var attachment = new Attachment
                         {
                             FileName = file.FileName,
-                            FilePath = Path.Combine("uploads", "tickets", ticketId.ToString(), "messages", message.Id.ToString(), fileName), // مسیر نسبی
+                            FilePath = relativeFilePath, // مسیر نسبی ذخیره می‌شود
                             Size = file.Length,
                             ContentType = file.ContentType,
                             MessageId = message.Id
                         };
-
                         _context.Attachments.Add(attachment);
                     }
                 }
