@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging; // اضافه شد
 using System.ComponentModel.DataAnnotations;
+using FaraHub.Web.Services;
 // توجه: استفاده از static از TicketController ممکن است منجر به مشکل شود. بهتر است DTOها را در یک namespace مشترک قرار دهید.
 // using static FaraHub.Web.Controllers.TicketController; // این خط را حذف یا بررسی کنید
 
@@ -114,6 +115,12 @@ namespace FaraHub.Web.Controllers
                 }
                 return BadRequest(ModelState); // این همان جایی است که 400 بر می‌گرداند
             }
+
+            // Ensure either content or at least one file is provided
+            if (string.IsNullOrWhiteSpace(model.Content) && (model.Files == null || !model.Files.Any()))
+            {
+                return BadRequest("لطفاً متن پیام یا یک فایل پیوست را ارسال کنید.");
+            }
             
             var currentUserId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(currentUserId))
@@ -141,11 +148,11 @@ namespace FaraHub.Web.Controllers
                 return NotFound("تیکت مورد نظر یافت نشد یا دسترسی ندارید.");
             }
 
-            // چک کردن WebRootPath قبل از استفاده
+            // چک کردن WebRootPath قبل از استفاده. اگر مقدار نداشت، فقط اخطار لاگ کن
             if (string.IsNullOrEmpty(_environment.WebRootPath))
             {
-                _logger.LogError("WebRootPath is null or empty. Cannot upload files.");
-                return BadRequest("سرویس فایل‌ها موقتاً در دسترس نیست.");
+                _logger.LogWarning("WebRootPath is null or empty; falling back to application root for uploads.");
+                // ادامه خواهیم داد و از مسیر پروژه برای آپلود استفاده می‌کنیم
             }
 
             // اعتبارسنجی فایل‌ها

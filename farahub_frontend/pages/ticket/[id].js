@@ -72,12 +72,7 @@ const TicketDetailPage = () => {
       // endpoint POST /api/message/send/{ticketId}
       const response = await apiService.post(
         `/message/send/${ticketId}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data", // خیلی مهم برای FormData
-          },
-        }
+        formData
       );
 
       // پیام جدید را به لیست پیام‌های نمایش داده شده اضافه کن (بهینه‌سازی فوری)
